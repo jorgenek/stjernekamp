@@ -1699,7 +1699,7 @@
       // ─── Admin FAB ───────────────────────────────────────────────────────────────
       document.getElementById("admin-fab-btn").addEventListener("click", () => {
         if (isAdminUnlocked()) {
-          lockAdminSession();
+          showAdmin();
         } else {
           showPin();
         }
