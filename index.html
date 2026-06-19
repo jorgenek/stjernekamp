@@ -1,0 +1,2493 @@
+<!doctype html>
+<html lang="no">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <title>Stjernekamp ⭐</title>
+    <link rel="manifest" href="./manifest.json" />
+    <style>
+      /* ─── Reset & Base ─── */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --bg: #0f172a;
+        --surface: #1e293b;
+        --surface2: #273449;
+        --border: #334155;
+        --text: #f1f5f9;
+        --muted: #94a3b8;
+        --blue: #3b82f6;
+        --pink: #ec4899;
+        --purple: #a855f7;
+        --green: #22c55e;
+        --red: #ef4444;
+        --yellow: #facc15;
+        --radius: 16px;
+        --radius-sm: 10px;
+        --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+        --transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      html,
+      body {
+        height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        -webkit-font-smoothing: antialiased;
+        overflow: hidden;
+      }
+
+      /* ─── App Shell ─── */
+      #app {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        overflow: hidden;
+      }
+
+      /* ─── Views ─── */
+      .view {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        background: var(--bg);
+        transition:
+          transform var(--transition),
+          opacity var(--transition);
+        overflow: hidden;
+      }
+      .view.hidden {
+        pointer-events: none;
+        opacity: 0;
+        transform: translateX(100%);
+      }
+      .view.slide-left {
+        transform: translateX(-100%);
+        opacity: 0;
+      }
+
+      /* ─── Header ─── */
+      .header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 20px;
+        padding-top: max(16px, env(safe-area-inset-top));
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+      .header h1 {
+        font-size: 1.3rem;
+        font-weight: 700;
+        flex: 1;
+      }
+      .back-btn {
+        background: var(--surface2);
+        border: none;
+        color: var(--text);
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: background var(--transition);
+      }
+      .back-btn:active {
+        background: var(--border);
+      }
+
+      /* ─── Scroll area ─── */
+      .scroll {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 16px 20px;
+        padding-bottom: max(24px, env(safe-area-inset-bottom));
+      }
+
+      /* ─── Home view ─── */
+      #view-home .header {
+        background: transparent;
+        border: none;
+        justify-content: center;
+      }
+      #view-home .header h1 {
+        text-align: center;
+        font-size: 1.8rem;
+      }
+      .home-scroll {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 8px 20px 100px;
+      }
+      .kid-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .kid-card {
+        border-radius: var(--radius);
+        padding: 28px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        transition:
+          transform var(--transition),
+          box-shadow var(--transition);
+        box-shadow: var(--shadow);
+        border: 2px solid transparent;
+      }
+      .kid-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: currentColor;
+        opacity: 0.12;
+      }
+      .kid-card:active {
+        transform: scale(0.97);
+      }
+      .kid-card-info {
+        position: relative;
+        z-index: 1;
+      }
+      .kid-card-name {
+        font-size: 1.6rem;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+      }
+      .kid-card-sub {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.7);
+        margin-top: 2px;
+      }
+      .kid-card-stars {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .kid-card-stars .star-count {
+        font-size: 3rem;
+        font-weight: 900;
+        line-height: 1;
+      }
+      .kid-card-stars .star-emoji {
+        font-size: 2rem;
+      }
+
+      /* Admin fab */
+      .admin-fab {
+        position: fixed;
+        bottom: max(24px, env(safe-area-inset-bottom));
+        right: 24px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: var(--surface);
+        border: 2px solid var(--border);
+        color: var(--muted);
+        font-size: 1.4rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: var(--shadow);
+        transition:
+          background var(--transition),
+          color var(--transition);
+        z-index: 10;
+      }
+      .admin-fab:active {
+        background: var(--border);
+        color: var(--text);
+      }
+
+      /* ─── Kid view ─── */
+      .kid-header {
+        padding: 20px;
+        padding-top: max(20px, env(safe-area-inset-top));
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        flex-shrink: 0;
+      }
+      .kid-header-row {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .kid-header-title {
+        flex: 1;
+        text-align: center;
+        font-size: 1.4rem;
+        font-weight: 800;
+      }
+      .kid-star-display {
+        font-size: 4rem;
+        font-weight: 900;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .kid-star-display .star-emoji {
+        font-size: 2.5rem;
+      }
+      .kid-star-label {
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      /* ─── Tabs ─── */
+      .tabs {
+        display: flex;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+      .tab-btn {
+        flex: 1;
+        padding: 14px 8px;
+        border: none;
+        background: none;
+        color: var(--muted);
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        position: relative;
+        transition: color var(--transition);
+      }
+      .tab-btn.active {
+        color: var(--text);
+      }
+      .tab-btn.active::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 16px;
+        right: 16px;
+        height: 3px;
+        background: var(--kid-color, var(--blue));
+        border-radius: 2px 2px 0 0;
+      }
+      .tab-panels {
+        flex: 1;
+        overflow: hidden;
+        position: relative;
+      }
+      .tab-panel {
+        position: absolute;
+        inset: 0;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 16px 20px;
+        padding-bottom: max(24px, env(safe-area-inset-bottom));
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity var(--transition);
+      }
+      .tab-panel.active {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      /* ─── Task / Reward list items ─── */
+      .list-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: var(--surface);
+        border-radius: var(--radius-sm);
+        padding: 14px 16px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        border: 1.5px solid var(--border);
+        transition:
+          border-color var(--transition),
+          transform var(--transition);
+        position: relative;
+        overflow: hidden;
+      }
+      .list-item:active {
+        transform: scale(0.98);
+      }
+      .list-item.locked {
+        opacity: 0.45;
+        cursor: default;
+      }
+      .list-item.locked:active {
+        transform: none;
+      }
+      .list-item-emoji {
+        font-size: 1.6rem;
+        flex-shrink: 0;
+      }
+      .list-item-body {
+        flex: 1;
+        min-width: 0;
+      }
+      .list-item-title {
+        font-weight: 600;
+        font-size: 1rem;
+      }
+      .list-item-sub {
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      .star-badge {
+        background: var(--surface2);
+        border-radius: 20px;
+        padding: 4px 10px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      /* ─── History section ─── */
+      .history-section {
+        margin-top: 24px;
+      }
+      .section-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 10px;
+      }
+      .history-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border);
+        font-size: 0.88rem;
+      }
+      .history-item:last-child {
+        border-bottom: none;
+      }
+      .history-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .history-dot.earn {
+        background: var(--green);
+      }
+      .history-dot.redeem {
+        background: var(--yellow);
+      }
+      .history-stars {
+        margin-left: auto;
+        font-weight: 700;
+        font-size: 0.85rem;
+        white-space: nowrap;
+      }
+
+      /* ─── Admin PIN ─── */
+      #view-pin .scroll {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100%;
+      }
+      .pin-title {
+        font-size: 1.4rem;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+      .pin-subtitle {
+        color: var(--muted);
+        font-size: 0.9rem;
+        margin-bottom: 32px;
+      }
+      .pin-dots {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 40px;
+      }
+      .pin-dot {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: var(--border);
+        transition: background 0.15s;
+      }
+      .pin-dot.filled {
+        background: var(--blue);
+      }
+      .pin-dot.error {
+        background: var(--red);
+      }
+      .pin-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        width: 100%;
+        max-width: 300px;
+      }
+      .pin-btn {
+        aspect-ratio: 1;
+        border: none;
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        color: var(--text);
+        font-size: 1.6rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition:
+          background var(--transition),
+          transform 0.1s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .pin-btn:active {
+        background: var(--surface2);
+        transform: scale(0.94);
+      }
+      .pin-btn.delete {
+        font-size: 1.2rem;
+        color: var(--muted);
+      }
+      .pin-btn.empty {
+        background: transparent;
+        pointer-events: none;
+      }
+      .pin-error {
+        color: var(--red);
+        font-size: 0.9rem;
+        margin-top: 16px;
+        min-height: 1.2em;
+      }
+
+      /* ─── Admin view ─── */
+      .admin-tabs {
+        flex-wrap: wrap;
+      }
+      .admin-tabs .tab-btn {
+        font-size: 0.82rem;
+        padding: 12px 4px;
+      }
+      .pending-card {
+        background: var(--surface);
+        border-radius: var(--radius-sm);
+        padding: 14px 16px;
+        margin-bottom: 10px;
+        border: 1.5px solid var(--border);
+      }
+      .pending-card-top {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .pending-kid-badge {
+        border-radius: 20px;
+        padding: 3px 10px;
+        font-size: 0.78rem;
+        font-weight: 700;
+      }
+      .pending-type-badge {
+        background: var(--surface2);
+        border-radius: 20px;
+        padding: 3px 8px;
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
+      .pending-card-title {
+        font-weight: 600;
+        font-size: 1rem;
+        flex: 1;
+      }
+      .pending-card-stars {
+        font-size: 0.9rem;
+        font-weight: 700;
+      }
+      .pending-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+      }
+      .action-btn {
+        border: none;
+        border-radius: var(--radius-sm);
+        padding: 8px 18px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition:
+          opacity var(--transition),
+          transform 0.1s;
+      }
+      .action-btn:active {
+        transform: scale(0.96);
+        opacity: 0.8;
+      }
+      .btn-approve {
+        background: var(--green);
+        color: #000;
+      }
+      .btn-reject {
+        background: var(--surface2);
+        color: var(--muted);
+        border: 1px solid var(--border);
+      }
+
+      /* Admin task/reward management */
+      .admin-list-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--surface);
+        border-radius: var(--radius-sm);
+        padding: 12px 14px;
+        margin-bottom: 8px;
+        border: 1.5px solid var(--border);
+      }
+      .admin-list-item-emoji {
+        font-size: 1.4rem;
+        flex-shrink: 0;
+      }
+      .admin-list-item-body {
+        flex: 1;
+        min-width: 0;
+      }
+      .admin-list-item-title {
+        font-weight: 600;
+        font-size: 0.95rem;
+      }
+      .admin-list-item-stars {
+        font-size: 0.82rem;
+        color: var(--muted);
+      }
+      .toggle-btn {
+        width: 44px;
+        height: 24px;
+        border-radius: 12px;
+        border: none;
+        cursor: pointer;
+        position: relative;
+        transition: background var(--transition);
+        flex-shrink: 0;
+      }
+      .toggle-btn::after {
+        content: "";
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: white;
+        transition: transform var(--transition);
+      }
+      .toggle-btn.on {
+        background: var(--green);
+      }
+      .toggle-btn.off {
+        background: var(--border);
+      }
+      .toggle-btn.on::after {
+        transform: translateX(20px);
+      }
+      .delete-btn {
+        background: none;
+        border: none;
+        color: var(--red);
+        font-size: 1.1rem;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: var(--radius-sm);
+        transition: background var(--transition);
+        flex-shrink: 0;
+      }
+      .delete-btn:active {
+        background: rgba(239, 68, 68, 0.15);
+      }
+
+      /* Add form */
+      .add-form {
+        background: var(--surface);
+        border-radius: var(--radius-sm);
+        padding: 16px;
+        margin-top: 16px;
+        border: 1.5px solid var(--border);
+        display: none;
+      }
+      .add-form.open {
+        display: block;
+      }
+      .add-form-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .form-input {
+        background: var(--surface2);
+        border: 1.5px solid var(--border);
+        border-radius: var(--radius-sm);
+        color: var(--text);
+        padding: 10px 12px;
+        font-size: 0.95rem;
+        outline: none;
+        width: 100%;
+        transition: border-color var(--transition);
+      }
+      .form-input:focus {
+        border-color: var(--blue);
+      }
+      .form-input-emoji {
+        width: 56px;
+        text-align: center;
+        font-size: 1.3rem;
+      }
+      .form-input-stars {
+        width: 72px;
+        text-align: center;
+      }
+      .form-label {
+        font-size: 0.78rem;
+        color: var(--muted);
+        margin-bottom: 4px;
+        font-weight: 600;
+      }
+      .form-group {
+        margin-bottom: 10px;
+      }
+      .save-btn {
+        background: var(--blue);
+        color: white;
+        border: none;
+        border-radius: var(--radius-sm);
+        padding: 11px 20px;
+        font-size: 0.95rem;
+        font-weight: 700;
+        cursor: pointer;
+        width: 100%;
+        margin-top: 4px;
+        transition: opacity var(--transition);
+      }
+      .save-btn:active {
+        opacity: 0.8;
+      }
+      .add-trigger-btn {
+        background: var(--surface);
+        border: 1.5px dashed var(--border);
+        border-radius: var(--radius-sm);
+        color: var(--muted);
+        padding: 12px;
+        width: 100%;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 8px;
+        transition:
+          border-color var(--transition),
+          color var(--transition);
+      }
+      .add-trigger-btn:active {
+        border-color: var(--blue);
+        color: var(--blue);
+      }
+
+      /* ─── Kid assign picker ─── */
+      .kid-assign-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+      }
+      .kid-assign-chip {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 12px;
+        border-radius: 20px;
+        border: 1.5px solid var(--border);
+        background: transparent;
+        color: var(--muted);
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s, color 0.15s, border-color 0.15s;
+        white-space: nowrap;
+      }
+      .kid-assign-chip.selected {
+        color: #fff;
+      }
+      .kid-assign-chip .chip-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+
+      /* ─── Assigned-to tag in admin list ─── */
+      .task-assign-tag {
+        font-size: 0.72rem;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+
+      /* Settings */
+      .settings-section {
+        background: var(--surface);
+        border-radius: var(--radius-sm);
+        padding: 16px;
+        margin-bottom: 16px;
+        border: 1.5px solid var(--border);
+      }
+      .settings-section-title {
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 12px;
+      }
+      .kid-adjust-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border);
+      }
+      .kid-adjust-row:last-child {
+        border-bottom: none;
+      }
+      .kid-adjust-name {
+        flex: 1;
+        font-weight: 600;
+      }
+      .kid-adjust-stars {
+        font-size: 1.1rem;
+        font-weight: 700;
+        min-width: 60px;
+        text-align: center;
+      }
+      .adjust-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: none;
+        font-size: 1.2rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: opacity var(--transition);
+        flex-shrink: 0;
+      }
+      .adjust-btn:active {
+        opacity: 0.7;
+      }
+      .adjust-btn.minus {
+        background: var(--surface2);
+        color: var(--text);
+      }
+      .adjust-btn.plus {
+        background: var(--green);
+        color: #000;
+      }
+      .danger-btn {
+        background: rgba(239, 68, 68, 0.15);
+        border: 1.5px solid var(--red);
+        color: var(--red);
+        border-radius: var(--radius-sm);
+        padding: 12px;
+        width: 100%;
+        font-size: 0.95rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background var(--transition);
+      }
+      .danger-btn:active {
+        background: rgba(239, 68, 68, 0.3);
+      }
+
+      /* ─── Modal / Overlay ─── */
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 100;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity var(--transition);
+      }
+      .modal-overlay.open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      .modal {
+        background: var(--surface);
+        border-radius: var(--radius) var(--radius) 0 0;
+        padding: 24px 24px max(32px, env(safe-area-inset-bottom));
+        width: 100%;
+        max-width: 480px;
+        transform: translateY(100%);
+        transition: transform var(--transition);
+      }
+      .modal-overlay.open .modal {
+        transform: translateY(0);
+      }
+      .modal-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+      .modal-body {
+        color: var(--muted);
+        font-size: 0.95rem;
+        margin-bottom: 20px;
+        line-height: 1.5;
+      }
+      .modal-actions {
+        display: flex;
+        gap: 10px;
+      }
+      .modal-actions button {
+        flex: 1;
+        padding: 14px;
+        border-radius: var(--radius-sm);
+        border: none;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: opacity 0.15s;
+      }
+      .modal-actions button:active {
+        opacity: 0.8;
+      }
+      .btn-cancel {
+        background: var(--surface2);
+        color: var(--text);
+      }
+      .btn-confirm {
+        background: var(--blue);
+        color: white;
+      }
+      .btn-confirm.is-kid-color {
+        background: var(--kid-color, var(--blue));
+      }
+
+      /* ─── Loading ─── */
+      .loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 120px;
+        color: var(--muted);
+        font-size: 0.9rem;
+        gap: 12px;
+      }
+      .spinner {
+        width: 28px;
+        height: 28px;
+        border: 3px solid var(--border);
+        border-top-color: var(--blue);
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* ─── Star burst animation ─── */
+      .star-burst {
+        position: fixed;
+        pointer-events: none;
+        font-size: 2rem;
+        z-index: 200;
+        animation: burst 0.8s ease-out forwards;
+      }
+      @keyframes burst {
+        0% {
+          transform: scale(0.5) translate(-50%, -50%);
+          opacity: 1;
+        }
+        60% {
+          transform: scale(1.6) translate(-50%, -50%);
+          opacity: 1;
+        }
+        100% {
+          transform: scale(1.2) translate(-50%, -80%);
+          opacity: 0;
+        }
+      }
+
+      /* ─── Empty state ─── */
+      .empty-state {
+        text-align: center;
+        padding: 32px 16px;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      .empty-state .empty-icon {
+        font-size: 2.5rem;
+        margin-bottom: 8px;
+      }
+
+      /* ─── Badge count ─── */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--red);
+        color: white;
+        border-radius: 10px;
+        padding: 1px 6px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        min-width: 18px;
+        margin-left: 4px;
+        line-height: 1.6;
+      }
+
+      /* ─── Task pending state ─── */
+      .list-item.task-pending {
+        opacity: 0.55;
+        cursor: default;
+      }
+      .list-item.task-pending .list-item-sub {
+        color: var(--yellow);
+      }
+
+      /* ─── History nav button ─── */
+      .history-nav-btn {
+        display: block;
+        width: calc(100% - 32px);
+        margin: 8px 16px 24px;
+        padding: 14px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 14px;
+        color: var(--text);
+        font-size: 1rem;
+        cursor: pointer;
+        text-align: center;
+        letter-spacing: 0.02em;
+      }
+      .history-nav-btn:active {
+        opacity: 0.7;
+      }
+
+      /* ─── History filter bar ─── */
+      .history-filter-bar {
+        display: flex;
+        gap: 8px;
+        padding: 12px 16px 4px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        flex-shrink: 0;
+      }
+      .history-filter-bar::-webkit-scrollbar {
+        display: none;
+      }
+      .hist-filter-btn {
+        flex-shrink: 0;
+        padding: 6px 16px;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(255, 255, 255, 0.07);
+        color: var(--muted);
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition:
+          background 0.15s,
+          color 0.15s;
+      }
+      .hist-filter-btn.active {
+        background: rgba(255, 255, 255, 0.2);
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      /* ─── Full history list ─── */
+      .hist-date-header {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        padding: 16px 16px 4px;
+      }
+      .hist-full-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      }
+      .hist-kid-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .hist-full-title {
+        flex: 1;
+        font-size: 0.95rem;
+      }
+      .hist-full-kid {
+        font-size: 0.75rem;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      .hist-full-stars {
+        font-size: 0.9rem;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      /* ─── Misc utils ─── */
+      .flex-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .mt-8 {
+        margin-top: 8px;
+      }
+      .mt-16 {
+        margin-top: 16px;
+      }
+      .no-pending {
+        text-align: center;
+        padding: 40px 16px;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <!-- ══════════════════════════════════════════ -->
+      <!-- VIEW: Home                                 -->
+      <!-- ══════════════════════════════════════════ -->
+      <div class="view" id="view-home">
+        <div class="header">
+          <h1>⭐ Stjernekamp</h1>
+        </div>
+        <div class="home-scroll">
+          <div class="kid-cards" id="kid-cards-container">
+            <div class="loading-state">
+              <div class="spinner"></div>
+              <span>Laster...</span>
+            </div>
+          </div>
+          <button class="history-nav-btn" onclick="showHistory()">
+            📜 Historikk
+          </button>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════ -->
+      <!-- VIEW: Kid                                  -->
+      <!-- ══════════════════════════════════════════ -->
+      <div class="view hidden" id="view-kid">
+        <div class="kid-header" id="kid-header">
+          <div class="kid-header-row">
+            <button class="back-btn" onclick="showHome()">←</button>
+            <div class="kid-header-title" id="kid-header-name">—</div>
+            <div style="width: 40px"></div>
+          </div>
+          <div class="kid-star-display" id="kid-star-display">
+            <span id="kid-star-count">0</span>
+            <span class="star-emoji">⭐</span>
+          </div>
+          <div class="kid-star-label">stjerner totalt</div>
+        </div>
+
+        <div class="tabs" id="kid-tabs">
+          <button class="tab-btn active" onclick="switchKidTab('tasks')">
+            Oppgaver
+          </button>
+          <button class="tab-btn" onclick="switchKidTab('rewards')">
+            Belønninger
+          </button>
+        </div>
+        <div class="tab-panels">
+          <div class="tab-panel active" id="kid-tab-tasks">
+            <div id="kid-tasks-list">
+              <div class="loading-state"><div class="spinner"></div></div>
+            </div>
+            <div
+              class="history-section"
+              id="kid-history-section"
+              style="display: none"
+            >
+              <div class="section-label">Siste aktivitet</div>
+              <div id="kid-history-list"></div>
+            </div>
+          </div>
+          <div class="tab-panel" id="kid-tab-rewards">
+            <div id="kid-rewards-list">
+              <div class="loading-state"><div class="spinner"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════ -->
+      <!-- VIEW: History                              -->
+      <!-- ══════════════════════════════════════════ -->
+      <div class="view hidden" id="view-history">
+        <div class="header">
+          <button class="back-btn" onclick="showHome()">←</button>
+          <h1>📜 Historikk</h1>
+        </div>
+        <div class="history-filter-bar" id="history-filter-bar">
+          <button
+            class="hist-filter-btn active"
+            data-kid="all"
+            onclick="setHistoryFilter('all')"
+          >
+            Alle
+          </button>
+        </div>
+        <div class="scroll" id="history-full-list">
+          <div class="loading-state"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════ -->
+      <!-- VIEW: PIN                                  -->
+      <!-- ══════════════════════════════════════════ -->
+      <div class="view hidden" id="view-pin">
+        <div class="header">
+          <button class="back-btn" onclick="showHome()">←</button>
+          <h1>Admin</h1>
+        </div>
+        <div
+          class="scroll"
+          style="
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+          "
+        >
+          <div class="pin-title">🔒 Admin-tilgang</div>
+          <div class="pin-subtitle">Skriv inn PIN-kode</div>
+          <div class="pin-dots" id="pin-dots">
+            <div class="pin-dot" id="dot-0"></div>
+            <div class="pin-dot" id="dot-1"></div>
+            <div class="pin-dot" id="dot-2"></div>
+            <div class="pin-dot" id="dot-3"></div>
+          </div>
+          <div class="pin-grid">
+            <button class="pin-btn" onclick="pinPress('1')">1</button>
+            <button class="pin-btn" onclick="pinPress('2')">2</button>
+            <button class="pin-btn" onclick="pinPress('3')">3</button>
+            <button class="pin-btn" onclick="pinPress('4')">4</button>
+            <button class="pin-btn" onclick="pinPress('5')">5</button>
+            <button class="pin-btn" onclick="pinPress('6')">6</button>
+            <button class="pin-btn" onclick="pinPress('7')">7</button>
+            <button class="pin-btn" onclick="pinPress('8')">8</button>
+            <button class="pin-btn" onclick="pinPress('9')">9</button>
+            <button class="pin-btn empty"></button>
+            <button class="pin-btn" onclick="pinPress('0')">0</button>
+            <button class="pin-btn delete" onclick="pinDelete()">⌫</button>
+          </div>
+          <div class="pin-error" id="pin-error"></div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════ -->
+      <!-- VIEW: Admin                                -->
+      <!-- ══════════════════════════════════════════ -->
+      <div class="view hidden" id="view-admin">
+        <div class="header">
+          <button class="back-btn" onclick="showHome()">←</button>
+          <h1>Admin 🔓</h1>
+        </div>
+        <div class="tabs admin-tabs">
+          <button class="tab-btn active" onclick="switchAdminTab('approve')">
+            Godkjenn<span class="badge" id="pending-badge" style="display: none"
+              >0</span
+            >
+          </button>
+          <button class="tab-btn" onclick="switchAdminTab('tasks')">
+            Oppgaver
+          </button>
+          <button class="tab-btn" onclick="switchAdminTab('rewards')">
+            Belønninger
+          </button>
+          <button class="tab-btn" onclick="switchAdminTab('settings')">
+            Innstillinger
+          </button>
+        </div>
+        <div class="tab-panels">
+          <!-- Approve tab -->
+          <div class="tab-panel active" id="admin-tab-approve">
+            <div id="pending-list">
+              <div class="loading-state"><div class="spinner"></div></div>
+            </div>
+          </div>
+
+          <!-- Tasks tab -->
+          <div class="tab-panel" id="admin-tab-tasks">
+            <div id="admin-tasks-list">
+              <div class="loading-state"><div class="spinner"></div></div>
+            </div>
+            <button class="add-trigger-btn" onclick="toggleAddForm('task')">
+              + Legg til oppgave
+            </button>
+            <div class="add-form" id="add-task-form">
+              <div class="flex-row">
+                <div class="form-group" style="flex-shrink: 0">
+                  <div class="form-label">Emoji</div>
+                  <input
+                    class="form-input form-input-emoji"
+                    id="new-task-emoji"
+                    type="text"
+                    maxlength="2"
+                    placeholder="📝"
+                  />
+                </div>
+                <div class="form-group" style="flex: 1">
+                  <div class="form-label">Tittel</div>
+                  <input
+                    class="form-input"
+                    id="new-task-title"
+                    type="text"
+                    placeholder="Oppgavenavn"
+                  />
+                </div>
+                <div class="form-group" style="flex-shrink: 0">
+                  <div class="form-label">⭐</div>
+                  <input
+                    class="form-input form-input-stars"
+                    id="new-task-stars"
+                    type="number"
+                    min="1"
+                    max="99"
+                    value="2"
+                  />
+                </div>
+              </div>
+              <div class="form-group">
+                <div class="form-label">Hvem gjelder oppgaven?</div>
+                <div class="kid-assign-row" id="new-task-assign-row">
+                  <!-- filled by JS --></div>
+              </div>
+              <button class="save-btn" onclick="saveNewTask()">
+                Lagre oppgave
+              </button>
+            </div>
+          </div>
+
+          <!-- Rewards tab -->
+          <div class="tab-panel" id="admin-tab-rewards">
+            <div id="admin-rewards-list">
+              <div class="loading-state"><div class="spinner"></div></div>
+            </div>
+            <button class="add-trigger-btn" onclick="toggleAddForm('reward')">
+              + Legg til belønning
+            </button>
+            <div class="add-form" id="add-reward-form">
+              <div class="flex-row">
+                <div class="form-group" style="flex-shrink: 0">
+                  <div class="form-label">Emoji</div>
+                  <input
+                    class="form-input form-input-emoji"
+                    id="new-reward-emoji"
+                    type="text"
+                    maxlength="2"
+                    placeholder="🎁"
+                  />
+                </div>
+                <div class="form-group" style="flex: 1">
+                  <div class="form-label">Tittel</div>
+                  <input
+                    class="form-input"
+                    id="new-reward-title"
+                    type="text"
+                    placeholder="Belønningsnavn"
+                  />
+                </div>
+                <div class="form-group" style="flex-shrink: 0">
+                  <div class="form-label">⭐</div>
+                  <input
+                    class="form-input form-input-stars"
+                    id="new-reward-stars"
+                    type="number"
+                    min="1"
+                    max="999"
+                    value="10"
+                  />
+                </div>
+              </div>
+              <button class="save-btn" onclick="saveNewReward()">
+                Lagre belønning
+              </button>
+            </div>
+          </div>
+
+          <!-- Settings tab -->
+          <div class="tab-panel" id="admin-tab-settings">
+            <!-- Star adjustment -->
+            <div class="settings-section">
+              <div class="settings-section-title">Juster stjerner manuelt</div>
+              <div id="settings-kids-list">
+                <div class="loading-state"><div class="spinner"></div></div>
+              </div>
+            </div>
+
+            <!-- Change PIN -->
+            <div class="settings-section">
+              <div class="settings-section-title">Endre PIN-kode</div>
+              <div class="form-group">
+                <div class="form-label">Ny PIN (4 siffer)</div>
+                <input
+                  class="form-input"
+                  id="new-pin-input"
+                  type="number"
+                  placeholder="1234"
+                  maxlength="4"
+                />
+              </div>
+              <button class="save-btn" onclick="changePin()">Endre PIN</button>
+            </div>
+
+            <!-- Reset all -->
+            <div class="settings-section">
+              <div class="settings-section-title">Farlig sone</div>
+              <button class="danger-btn" onclick="confirmResetAll()">
+                Nullstill alle stjerner
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Global admin FAB — visible on all views -->
+      <button class="admin-fab" id="admin-fab-btn" title="Admin">🔒</button>
+    </div>
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- MODAL                                      -->
+    <!-- ══════════════════════════════════════════ -->
+    <div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+      <div class="modal">
+        <div class="modal-title" id="modal-title">Bekreft</div>
+        <div class="modal-body" id="modal-body"></div>
+        <div class="modal-actions">
+          <button class="btn-cancel" onclick="closeModal()">Avbryt</button>
+          <button
+            class="btn-confirm"
+            id="modal-confirm-btn"
+            onclick="modalConfirm()"
+          >
+            Bekreft
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- FIREBASE + APP SCRIPT                      -->
+    <!-- ══════════════════════════════════════════ -->
+    <script type="module">
+      // ─────────────────────────────────────────────────────────────────────────────
+      // FIREBASE CONFIG — replace with your own values from the Firebase console
+      // ─────────────────────────────────────────────────────────────────────────────
+      const FIREBASE_CONFIG = {
+        apiKey: "AIzaSyCjhNg7xkMQl8kbRTxDnQLC8Okm9sfSfXo",
+        authDomain: "stjernekamp-3212.firebaseapp.com",
+        projectId: "stjernekamp-3212",
+        storageBucket: "stjernekamp-3212.firebasestorage.app",
+        messagingSenderId: "303401978469",
+        appId: "1:303401978469:web:d172cc38b717050f7a948c",
+      };
+      // ─────────────────────────────────────────────────────────────────────────────
+
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+      import {
+        getFirestore,
+        collection,
+        doc,
+        getDoc,
+        getDocs,
+        setDoc,
+        addDoc,
+        updateDoc,
+        deleteDoc,
+        onSnapshot,
+        query,
+        orderBy,
+        limit,
+        where,
+        serverTimestamp,
+        writeBatch,
+      } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+      // ─── Init Firebase ───────────────────────────────────────────────────────────
+      const app = initializeApp(FIREBASE_CONFIG);
+      const db = getFirestore(app);
+
+      // ─── State ───────────────────────────────────────────────────────────────────
+      let adminPin = "1234";
+      let currentKidId = null;
+      let currentKidData = null;
+      let allKids = {}; // id -> data
+      let allTasks = {}; // id -> data
+      let allRewards = {}; // id -> data
+      let pendingRequests = {}; // id -> data
+      let modalAction = null;
+
+      // onSnapshot unsubscribers
+      let unsubKids = null;
+      let unsubTasks = null;
+      let unsubRewards = null;
+      let unsubPending = null;
+      let unsubKidData = null;
+      let unsubKidHist = null;
+      let unsubKidPending = null;
+      let kidPendingTaskIds = new Set(); // taskIds with pending requests for current kid
+      let unsubFullHist = null;
+      let historyFilter = "all";
+
+      // ─── Seed data ───────────────────────────────────────────────────────────────
+      const SEED_KIDS = [
+        { id: "trym", name: "Trym", color: "#3b82f6", stars: 0 },
+        { id: "emma", name: "Emma", color: "#ec4899", stars: 0 },
+        { id: "hermine", name: "Hermine", color: "#a855f7", stars: 0 },
+      ];
+      const SEED_TASKS = [
+        { emoji: "🧹", title: "Rydde rommet", stars: 2, active: true },
+        { emoji: "📚", title: "Lekser", stars: 3, active: true },
+        { emoji: "🍽️", title: "Sette bordet", stars: 1, active: true },
+        { emoji: "🫧", title: "Ta oppvasken", stars: 2, active: true },
+        {
+          emoji: "🚿",
+          title: "Vaske seg uten påminnelse",
+          stars: 1,
+          active: true,
+        },
+      ];
+      const SEED_REWARDS = [
+        { emoji: "🎬", title: "Velg kveldsfilm", stars: 10, active: true },
+        { emoji: "🍦", title: "Is", stars: 5, active: true },
+        {
+          emoji: "📱",
+          title: "Ekstra skjermtid (30 min)",
+          stars: 8,
+          active: true,
+        },
+        { emoji: "🌙", title: "Overnattingsbesøk", stars: 20, active: true },
+      ];
+
+      async function seedIfEmpty() {
+        const snap = await getDocs(collection(db, "kids"));
+        if (!snap.empty) return;
+        const batch = writeBatch(db);
+        SEED_KIDS.forEach((k) =>
+          batch.set(doc(db, "kids", k.id), {
+            name: k.name,
+            color: k.color,
+            stars: k.stars,
+          }),
+        );
+        SEED_TASKS.forEach((t) => batch.set(doc(collection(db, "tasks")), t));
+        SEED_REWARDS.forEach((r) =>
+          batch.set(doc(collection(db, "rewards")), r),
+        );
+        // Save admin PIN in a settings doc
+        batch.set(doc(db, "settings", "admin"), { pin: "3212" });
+        await batch.commit();
+      }
+
+      async function loadPin() {
+        try {
+          const snap = await getDoc(doc(db, "settings", "admin"));
+          if (snap.exists() && snap.data().pin) adminPin = snap.data().pin;
+        } catch (e) {}
+      }
+
+      // ─── Bootstrap ───────────────────────────────────────────────────────────────
+      async function bootstrap() {
+        showView("view-home"); // vis hjemskjerm umiddelbart
+        try {
+          await seedIfEmpty();
+          await loadPin();
+        } catch (e) {
+          console.error("Init error:", e);
+        }
+        subscribeHome();
+      }
+
+      // ─── Navigation ──────────────────────────────────────────────────────────────
+      function showView(id, fromDir = "right") {
+        document.querySelectorAll(".view").forEach((v) => {
+          if (v.id === id) {
+            v.classList.remove("hidden", "slide-left");
+          } else {
+            v.classList.add(fromDir === "right" ? "hidden" : "slide-left");
+            v.classList.remove(fromDir === "right" ? "slide-left" : "hidden");
+          }
+        });
+      }
+
+      window.showHome = function () {
+        cleanupKidListeners();
+        cleanupAdminListeners();
+        if (unsubFullHist) {
+          unsubFullHist();
+          unsubFullHist = null;
+        }
+        currentKidId = null;
+        currentKidData = null;
+        showView("view-home");
+      };
+
+      window.showKid = function (kidId) {
+        currentKidId = kidId;
+        currentKidData = allKids[kidId];
+        setupKidView();
+        showView("view-kid");
+      };
+
+      window.showPin = function () {
+        if (isAdminUnlocked()) { showAdmin(); return; }
+        pinReset();
+        showView("view-pin");
+      };
+
+      window.showAdmin = function () {
+        setupAdminView();
+        showView("view-admin");
+      };
+
+      window.showHistory = function () {
+        historyFilter = "all";
+        showView("view-history");
+        buildHistoryFilterBar();
+        subscribeFullHistory();
+      };
+
+      window.setHistoryFilter = function (kidId) {
+        historyFilter = kidId;
+        document.querySelectorAll(".hist-filter-btn").forEach((b) => {
+          b.classList.toggle("active", b.dataset.kid === kidId);
+        });
+        subscribeFullHistory();
+      };
+
+      // ─── PIN ─────────────────────────────────────────────────────────────────────
+      let pinBuffer = "";
+
+      function pinReset() {
+        pinBuffer = "";
+        updatePinDots();
+        document.getElementById("pin-error").textContent = "";
+      }
+
+      function updatePinDots(error = false) {
+        for (let i = 0; i < 4; i++) {
+          const dot = document.getElementById("dot-" + i);
+          dot.classList.remove("filled", "error");
+          if (error) dot.classList.add("error");
+          else if (i < pinBuffer.length) dot.classList.add("filled");
+        }
+      }
+
+      window.pinPress = function (digit) {
+        if (pinBuffer.length >= 4) return;
+        pinBuffer += digit;
+        updatePinDots();
+        if (pinBuffer.length === 4) {
+          setTimeout(checkPin, 120);
+        }
+      };
+
+      window.pinDelete = function () {
+        if (pinBuffer.length > 0) {
+          pinBuffer = pinBuffer.slice(0, -1);
+          updatePinDots();
+          document.getElementById("pin-error").textContent = "";
+        }
+      };
+
+      function checkPin() {
+        if (pinBuffer === adminPin) {
+          unlockAdminSession();
+          pinReset();
+          showAdmin();
+        } else {
+          updatePinDots(true);
+          document.getElementById("pin-error").textContent =
+            "Feil PIN-kode, prøv igjen.";
+          setTimeout(() => {
+            pinReset();
+          }, 800);
+        }
+      }
+
+      // ─── Admin session ───────────────────────────────────────────────────────────
+      const ADMIN_SESSION_KEY = "admin_session_until";
+      const ADMIN_SESSION_MS = 30 * 60 * 1000; // 30 minutes
+      let adminSessionTimer = null;
+
+      function isAdminUnlocked() {
+        const until = parseInt(sessionStorage.getItem(ADMIN_SESSION_KEY) || "0");
+        return Date.now() < until;
+      }
+
+      function unlockAdminSession() {
+        sessionStorage.setItem(ADMIN_SESSION_KEY, Date.now() + ADMIN_SESSION_MS);
+        updateFab();
+        clearTimeout(adminSessionTimer);
+        adminSessionTimer = setTimeout(lockAdminSession, ADMIN_SESSION_MS);
+      }
+
+      function lockAdminSession() {
+        sessionStorage.removeItem(ADMIN_SESSION_KEY);
+        updateFab();
+      }
+
+      function updateFab() {
+        const fab = document.getElementById("admin-fab-btn");
+        if (isAdminUnlocked()) {
+          fab.textContent = "🔓";
+          fab.title = "Admin (lås)";
+        } else {
+          fab.textContent = "🔒";
+          fab.title = "Admin";
+        }
+      }
+
+      // ─── Admin FAB ───────────────────────────────────────────────────────────────
+      document.getElementById("admin-fab-btn").addEventListener("click", () => {
+        if (isAdminUnlocked()) {
+          lockAdminSession();
+        } else {
+          showPin();
+        }
+      });
+
+      // ─── Home subscriptions ───────────────────────────────────────────────────────
+      function subscribeHome() {
+        if (unsubKids) unsubKids();
+        unsubKids = onSnapshot(collection(db, "kids"), (snap) => {
+          snap.forEach((d) => {
+            allKids[d.id] = { id: d.id, ...d.data() };
+          });
+          renderKidCards();
+          // Update kid view star count if open
+          if (currentKidId && allKids[currentKidId]) {
+            document.getElementById("kid-star-count").textContent =
+              allKids[currentKidId].stars ?? 0;
+          }
+          // Update settings kid list if admin open
+          renderSettingsKids();
+        });
+      }
+
+      function renderKidCards() {
+        const container = document.getElementById("kid-cards-container");
+        const kids = Object.values(allKids);
+        if (kids.length === 0) {
+          container.innerHTML =
+            '<div class="loading-state"><div class="spinner"></div><span>Laster barn...</span></div>';
+          return;
+        }
+        // Sort by seed order
+        const order = ["trym", "emma", "hermine"];
+        kids.sort((a, b) => {
+          const ai = order.indexOf(a.id),
+            bi = order.indexOf(b.id);
+          return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+        });
+        container.innerHTML = kids
+          .map(
+            (k) => `
+    <div class="kid-card" style="color:${k.color};border-color:${k.color}40;"
+         onclick="showKid('${k.id}')">
+      <div class="kid-card-info">
+        <div class="kid-card-name" style="color:${k.color}">${k.name}</div>
+        <div class="kid-card-sub">Trykk for å se oppgaver</div>
+      </div>
+      <div class="kid-card-stars">
+        <span class="star-count" style="color:${k.color}">${k.stars ?? 0}</span>
+        <span class="star-emoji">⭐</span>
+      </div>
+    </div>
+  `,
+          )
+          .join("");
+      }
+
+      // ─── Kid view ─────────────────────────────────────────────────────────────────
+      function setupKidView() {
+        const kid = allKids[currentKidId];
+        if (!kid) return;
+
+        // Header color
+        const header = document.getElementById("kid-header");
+        header.style.background = kid.color + "22";
+        document.getElementById("kid-header-name").textContent = kid.name;
+        document.getElementById("kid-header-name").style.color = kid.color;
+        document.getElementById("kid-star-count").textContent = kid.stars ?? 0;
+        document.getElementById("kid-star-count").style.color = kid.color;
+
+        // Tab accent
+        document
+          .getElementById("kid-tabs")
+          .style.setProperty("--kid-color", kid.color);
+
+        // Reset tabs
+        switchKidTab("tasks");
+
+        // Subscribe to tasks + rewards (use cached allTasks/allRewards if loaded)
+        if (Object.keys(allTasks).length === 0) {
+          subscribeTasksRewards();
+        } else {
+          renderKidTasks();
+          renderKidRewards();
+        }
+
+        // Subscribe kid history and pending
+        subscribeKidHistory();
+        subscribeKidPending();
+      }
+
+      function subscribeKidPending() {
+        if (unsubKidPending) unsubKidPending();
+        const q = query(
+          collection(db, "pending"),
+          where("kidId", "==", currentKidId),
+          where("type", "==", "earn"),
+        );
+        unsubKidPending = onSnapshot(q, (snap) => {
+          kidPendingTaskIds = new Set();
+          snap.forEach((d) => kidPendingTaskIds.add(d.data().taskId));
+          renderKidTasks();
+        });
+      }
+
+      function cleanupKidListeners() {
+        if (unsubKidData) {
+          unsubKidData();
+          unsubKidData = null;
+        }
+        if (unsubKidHist) {
+          unsubKidHist();
+          unsubKidHist = null;
+        }
+        if (unsubKidPending) {
+          unsubKidPending();
+          unsubKidPending = null;
+        }
+        kidPendingTaskIds = new Set();
+      }
+
+      function subscribeTasksRewards() {
+        if (unsubTasks) unsubTasks();
+        unsubTasks = onSnapshot(collection(db, "tasks"), (snap) => {
+          allTasks = {};
+          snap.forEach((d) => {
+            allTasks[d.id] = { id: d.id, ...d.data() };
+          });
+          renderKidTasks();
+          renderAdminTasks();
+        });
+        if (unsubRewards) unsubRewards();
+        unsubRewards = onSnapshot(collection(db, "rewards"), (snap) => {
+          allRewards = {};
+          snap.forEach((d) => {
+            allRewards[d.id] = { id: d.id, ...d.data() };
+          });
+          renderKidRewards();
+          renderAdminRewards();
+        });
+      }
+
+      function subscribeKidHistory() {
+        if (unsubKidHist) unsubKidHist();
+        const q = query(
+          collection(db, "history"),
+          where("kidId", "==", currentKidId),
+          orderBy("timestamp", "desc"),
+          limit(5),
+        );
+        unsubKidHist = onSnapshot(q, (snap) => {
+          const items = [];
+          snap.forEach((d) => items.push({ id: d.id, ...d.data() }));
+          renderKidHistory(items);
+        });
+      }
+
+      function renderKidHistory(items) {
+        const section = document.getElementById("kid-history-section");
+        const list = document.getElementById("kid-history-list");
+        if (items.length === 0) {
+          section.style.display = "none";
+          return;
+        }
+        section.style.display = "block";
+        list.innerHTML = items
+          .map(
+            (h) => `
+    <div class="history-item">
+      <div class="history-dot ${h.type}"></div>
+      <span>${h.emoji ?? ""} ${h.title}</span>
+      <span class="history-stars" style="color:${h.type === "earn" ? "var(--green)" : "var(--yellow)"}">
+        ${h.type === "earn" ? "+" : "-"}${h.stars}⭐
+      </span>
+    </div>
+  `,
+          )
+          .join("");
+      }
+
+      function buildHistoryFilterBar() {
+        const bar = document.getElementById("history-filter-bar");
+        const kids = Object.values(allKids);
+        // Rebuild keeping "Alle" first
+        bar.innerHTML = `<button class="hist-filter-btn active" data-kid="all" onclick="setHistoryFilter('all')">Alle</button>`;
+        kids.forEach((k) => {
+          const btn = document.createElement("button");
+          btn.className = "hist-filter-btn";
+          btn.dataset.kid = k.id;
+          btn.onclick = () => setHistoryFilter(k.id);
+          btn.textContent = k.name;
+          btn.style.borderColor = k.color + "66";
+          bar.appendChild(btn);
+        });
+      }
+
+      function subscribeFullHistory() {
+        if (unsubFullHist) unsubFullHist();
+        const list = document.getElementById("history-full-list");
+        list.innerHTML =
+          '<div class="loading-state"><div class="spinner"></div></div>';
+
+        const q = query(
+          collection(db, "history"),
+          orderBy("timestamp", "desc"),
+          limit(200),
+        );
+        unsubFullHist = onSnapshot(q, (snap) => {
+          let items = [];
+          snap.forEach((d) => items.push({ id: d.id, ...d.data() }));
+          if (historyFilter !== "all") {
+            items = items.filter((h) => h.kidId === historyFilter);
+          }
+          renderFullHistory(items);
+        });
+      }
+
+      function renderFullHistory(items) {
+        const list = document.getElementById("history-full-list");
+        if (items.length === 0) {
+          list.innerHTML =
+            '<div class="empty-state"><div class="empty-icon">📭</div>Ingen historikk ennå</div>';
+          return;
+        }
+
+        // Group by date
+        const groups = {};
+        items.forEach((h) => {
+          const ts = h.timestamp?.toDate ? h.timestamp.toDate() : new Date();
+          const dateKey = ts.toLocaleDateString("nb-NO", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+          });
+          if (!groups[dateKey]) groups[dateKey] = [];
+          groups[dateKey].push({ ...h, _date: ts });
+        });
+
+        list.innerHTML = Object.entries(groups)
+          .map(([dateLabel, group]) => {
+            const rows = group
+              .map((h) => {
+                const kid = allKids[h.kidId] || {
+                  name: h.kidId,
+                  color: "#888",
+                };
+                const timeStr = h._date.toLocaleTimeString("nb-NO", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                });
+                const isEarn = h.type === "earn";
+                const starsColor = isEarn ? "var(--green)" : "var(--yellow)";
+                const starsLabel = (isEarn ? "+" : "−") + h.stars + "⭐";
+                return `
+              <div class="hist-full-item">
+                <div class="hist-kid-dot" style="background:${kid.color}"></div>
+                <div style="flex:1;min-width:0">
+                  <div class="hist-full-title">${h.emoji ?? ""} ${h.title}</div>
+                  <div class="hist-full-kid" style="color:${kid.color}">${kid.name} · ${timeStr}</div>
+                </div>
+                <div class="hist-full-stars" style="color:${starsColor}">${starsLabel}</div>
+              </div>`;
+              })
+              .join("");
+            return `<div class="hist-date-header">${dateLabel}</div>${rows}`;
+          })
+          .join("");
+      }
+
+      window.switchKidTab = function (tab) {
+        document.querySelectorAll("#kid-tabs .tab-btn").forEach((b, i) => {
+          b.classList.toggle(
+            "active",
+            (tab === "tasks" && i === 0) || (tab === "rewards" && i === 1),
+          );
+        });
+        document
+          .getElementById("kid-tab-tasks")
+          .classList.toggle("active", tab === "tasks");
+        document
+          .getElementById("kid-tab-rewards")
+          .classList.toggle("active", tab === "rewards");
+      };
+
+      function renderKidTasks() {
+        if (!currentKidId) return;
+        const list = document.getElementById("kid-tasks-list");
+        const tasks = Object.values(allTasks).filter((t) => {
+          if (!t.active) return false;
+          const a = t.assignedTo;
+          return !a || a.length === 0 || a.includes(currentKidId);
+        });
+        if (tasks.length === 0) {
+          list.innerHTML =
+            '<div class="empty-state"><div class="empty-icon">📋</div>Ingen oppgaver ennå</div>';
+          return;
+        }
+        list.innerHTML = tasks
+          .map((t) => {
+            const pending = kidPendingTaskIds.has(t.id);
+            return `
+    <div class="list-item${pending ? " task-pending" : ""}" ${pending ? "" : `onclick="requestTask('${t.id}')"`}>
+      <span class="list-item-emoji">${t.emoji ?? "📝"}</span>
+      <div class="list-item-body">
+        <div class="list-item-title">${t.title}</div>
+        <div class="list-item-sub">${pending ? "⏳ Venter på godkjenning…" : "Trykk for å sende til godkjenning"}</div>
+      </div>
+      <span class="star-badge">+${t.stars}⭐</span>
+    </div>`;
+          })
+          .join("");
+      }
+
+      function renderKidRewards() {
+        if (!currentKidId) return;
+        const list = document.getElementById("kid-rewards-list");
+        const kid = allKids[currentKidId];
+        const kidStars = kid ? (kid.stars ?? 0) : 0;
+        const rewards = Object.values(allRewards).filter((r) => r.active);
+        if (rewards.length === 0) {
+          list.innerHTML =
+            '<div class="empty-state"><div class="empty-icon">🎁</div>Ingen belønninger ennå</div>';
+          return;
+        }
+        rewards.sort((a, b) => a.stars - b.stars);
+        list.innerHTML = rewards
+          .map((r) => {
+            const canAfford = kidStars >= r.stars;
+            return `
+      <div class="list-item ${canAfford ? "" : "locked"}" onclick="${canAfford ? `requestReward('${r.id}')` : ""}">
+        <span class="list-item-emoji">${r.emoji ?? "🎁"}</span>
+        <div class="list-item-body">
+          <div class="list-item-title">${r.title}</div>
+          <div class="list-item-sub">${canAfford ? "Du har råd!" : `Du trenger ${r.stars - kidStars} stjerner til`}</div>
+        </div>
+        <span class="star-badge">${r.stars}⭐</span>
+      </div>
+    `;
+          })
+          .join("");
+      }
+
+      // ─── Kid requests ─────────────────────────────────────────────────────────────
+      window.requestTask = function (taskId) {
+        const task = allTasks[taskId];
+        const kid = allKids[currentKidId];
+        if (!task || !kid) return;
+        openModal(
+          `Vil du be om "${task.title}"?`,
+          `${task.emoji ?? ""} ${task.title} gir ${task.stars}⭐\nDette sendes til mamma og pappa for godkjenning.`,
+          kid.color,
+          async () => {
+            await addDoc(collection(db, "pending"), {
+              kidId: currentKidId,
+              kidName: kid.name,
+              kidColor: kid.color,
+              type: "earn",
+              taskId,
+              title: task.title,
+              emoji: task.emoji ?? "📝",
+              stars: task.stars,
+              timestamp: serverTimestamp(),
+            });
+          },
+        );
+      };
+
+      window.requestReward = function (rewardId) {
+        const reward = allRewards[rewardId];
+        const kid = allKids[currentKidId];
+        if (!reward || !kid) return;
+        openModal(
+          `Vil du løse inn "${reward.title}"?`,
+          `${reward.emoji ?? ""} ${reward.title} koster ${reward.stars}⭐\nDu har ${kid.stars ?? 0}⭐. Dette sendes til mamma og pappa.`,
+          kid.color,
+          async () => {
+            await addDoc(collection(db, "pending"), {
+              kidId: currentKidId,
+              kidName: kid.name,
+              kidColor: kid.color,
+              type: "redeem",
+              rewardId,
+              title: reward.title,
+              emoji: reward.emoji ?? "🎁",
+              stars: reward.stars,
+              timestamp: serverTimestamp(),
+            });
+          },
+        );
+      };
+
+      // ─── Admin view ───────────────────────────────────────────────────────────────
+      function setupAdminView() {
+        switchAdminTab("approve");
+        subscribeTasksRewards();
+        subscribePending();
+      }
+
+      function cleanupAdminListeners() {
+        if (unsubPending) {
+          unsubPending();
+          unsubPending = null;
+        }
+      }
+
+      function subscribePending() {
+        if (unsubPending) unsubPending();
+        const q = query(collection(db, "pending"), orderBy("timestamp", "asc"));
+        unsubPending = onSnapshot(q, (snap) => {
+          pendingRequests = {};
+          snap.forEach((d) => {
+            pendingRequests[d.id] = { id: d.id, ...d.data() };
+          });
+          renderPending();
+          updatePendingBadge();
+        });
+      }
+
+      function updatePendingBadge() {
+        const badge = document.getElementById("pending-badge");
+        const count = Object.keys(pendingRequests).length;
+        badge.textContent = count;
+        badge.style.display = count > 0 ? "inline-flex" : "none";
+      }
+
+      function renderPending() {
+        const list = document.getElementById("pending-list");
+        const items = Object.values(pendingRequests);
+        if (items.length === 0) {
+          list.innerHTML =
+            '<div class="no-pending">✅ Ingen ventende forespørsler</div>';
+          return;
+        }
+        list.innerHTML = items
+          .map(
+            (p) => `
+    <div class="pending-card" id="pending-${p.id}">
+      <div class="pending-card-top">
+        <span class="pending-kid-badge" style="background:${p.kidColor}30;color:${p.kidColor}">${p.kidName}</span>
+        <span class="pending-type-badge">${p.type === "earn" ? "Oppgave" : "Belønning"}</span>
+        <span class="pending-card-stars" style="margin-left:auto">${p.type === "earn" ? "+" : "-"}${p.stars}⭐</span>
+      </div>
+      <div class="pending-card-title">${p.emoji} ${p.title}</div>
+      <div class="pending-actions mt-8">
+        <button class="action-btn btn-reject" onclick="rejectPending('${p.id}')">✗ Avvis</button>
+        <button class="action-btn btn-approve" onclick="approvePending('${p.id}')">✓ Godkjenn</button>
+      </div>
+    </div>
+  `,
+          )
+          .join("");
+      }
+
+      window.approvePending = async function (pendingId) {
+        const p = pendingRequests[pendingId];
+        if (!p) return;
+        const kid = allKids[p.kidId];
+        if (!kid) return;
+
+        const batch = writeBatch(db);
+        const kidRef = doc(db, "kids", p.kidId);
+        const newStars =
+          (kid.stars ?? 0) + (p.type === "earn" ? p.stars : -p.stars);
+        batch.update(kidRef, { stars: Math.max(0, newStars) });
+        batch.delete(doc(db, "pending", pendingId));
+        batch.set(doc(collection(db, "history")), {
+          kidId: p.kidId,
+          type: p.type,
+          title: p.title,
+          emoji: p.emoji,
+          stars: p.stars,
+          timestamp: serverTimestamp(),
+        });
+        await batch.commit();
+
+        if (p.type === "earn") starBurst();
+      };
+
+      window.rejectPending = async function (pendingId) {
+        await deleteDoc(doc(db, "pending", pendingId));
+      };
+
+      // ─── Admin tabs ───────────────────────────────────────────────────────────────
+      window.switchAdminTab = function (tab) {
+        const tabs = ["approve", "tasks", "rewards", "settings"];
+        document.querySelectorAll(".admin-tabs .tab-btn").forEach((b, i) => {
+          b.classList.toggle("active", tabs[i] === tab);
+        });
+        tabs.forEach((t) => {
+          document
+            .getElementById("admin-tab-" + t)
+            .classList.toggle("active", t === tab);
+        });
+        if (tab === "tasks" && Object.keys(allTasks).length === 0)
+          subscribeTasksRewards();
+        if (tab === "settings") renderSettingsKids();
+      };
+
+      // ─── Admin task management ────────────────────────────────────────────────────
+      function assignedLabel(t) {
+        const ids = t.assignedTo;
+        if (!ids || ids.length === 0) return "Alle";
+        return ids.map((id) => allKids[id]?.name ?? id).join(", ");
+      }
+
+      function renderAdminTasks() {
+        const list = document.getElementById("admin-tasks-list");
+        if (!list) return;
+        const tasks = Object.values(allTasks);
+        if (tasks.length === 0) {
+          list.innerHTML =
+            '<div class="empty-state"><div class="empty-icon">📋</div>Ingen oppgaver</div>';
+          return;
+        }
+        list.innerHTML = tasks
+          .map(
+            (t) => `
+    <div class="admin-list-item">
+      <span class="admin-list-item-emoji">${t.emoji ?? "📝"}</span>
+      <div class="admin-list-item-body">
+        <div class="admin-list-item-title">${t.title}</div>
+        <div class="admin-list-item-stars">${t.stars}⭐</div>
+        <div class="task-assign-tag">👤 ${assignedLabel(t)}</div>
+      </div>
+      <button class="toggle-btn ${t.active ? "on" : "off"}" onclick="toggleTask('${t.id}', ${!t.active})"></button>
+      <button class="delete-btn" onclick="deleteTask('${t.id}')">🗑</button>
+    </div>
+  `,
+          )
+          .join("");
+      }
+
+      window.toggleTask = async function (id, active) {
+        await updateDoc(doc(db, "tasks", id), { active });
+      };
+
+      window.deleteTask = function (id) {
+        openModal(
+          "Slett oppgave?",
+          "Dette kan ikke angres.",
+          null,
+          async () => {
+            await deleteDoc(doc(db, "tasks", id));
+          },
+        );
+      };
+
+      window.toggleAddForm = function (type) {
+        const formId = type === "task" ? "add-task-form" : "add-reward-form";
+        const form = document.getElementById(formId);
+        const opening = !form.classList.contains("open");
+        form.classList.toggle("open");
+        if (opening && type === "task") buildAssignChips();
+      };
+
+      function buildAssignChips() {
+        const row = document.getElementById("new-task-assign-row");
+        if (!row) return;
+        const kids = Object.values(allKids);
+        row.innerHTML = kids.map((k) => `
+          <button type="button" class="kid-assign-chip" data-kid-id="${k.id}"
+            style="border-color:${k.color}66"
+            onclick="toggleAssignChip(this,'${k.id}','${k.color}')">
+            <span class="chip-dot" style="background:${k.color}"></span>${k.name}
+          </button>`).join("");
+      }
+
+      window.toggleAssignChip = function (btn, kidId, color) {
+        btn.classList.toggle("selected");
+        if (btn.classList.contains("selected")) {
+          btn.style.background = color + "33";
+          btn.style.borderColor = color;
+          btn.style.color = "#fff";
+        } else {
+          btn.style.background = "transparent";
+          btn.style.borderColor = color + "66";
+          btn.style.color = "var(--muted)";
+        }
+      };
+
+      window.saveNewTask = async function () {
+        const emoji =
+          document.getElementById("new-task-emoji").value.trim() || "📝";
+        const title = document.getElementById("new-task-title").value.trim();
+        const stars =
+          parseInt(document.getElementById("new-task-stars").value) || 1;
+        if (!title) {
+          alert("Skriv inn et navn på oppgaven.");
+          return;
+        }
+        const selectedChips = document.querySelectorAll("#new-task-assign-row .kid-assign-chip.selected");
+        const assignedTo = Array.from(selectedChips).map((b) => b.dataset.kidId);
+        await addDoc(collection(db, "tasks"), {
+          emoji,
+          title,
+          stars,
+          active: true,
+          assignedTo,
+        });
+        document.getElementById("new-task-title").value = "";
+        document.getElementById("new-task-emoji").value = "";
+        document.getElementById("add-task-form").classList.remove("open");
+      };
+
+      // ─── Admin reward management ──────────────────────────────────────────────────
+      function renderAdminRewards() {
+        const list = document.getElementById("admin-rewards-list");
+        if (!list) return;
+        const rewards = Object.values(allRewards);
+        if (rewards.length === 0) {
+          list.innerHTML =
+            '<div class="empty-state"><div class="empty-icon">🎁</div>Ingen belønninger</div>';
+          return;
+        }
+        list.innerHTML = rewards
+          .map(
+            (r) => `
+    <div class="admin-list-item">
+      <span class="admin-list-item-emoji">${r.emoji ?? "🎁"}</span>
+      <div class="admin-list-item-body">
+        <div class="admin-list-item-title">${r.title}</div>
+        <div class="admin-list-item-stars">${r.stars}⭐</div>
+      </div>
+      <button class="toggle-btn ${r.active ? "on" : "off"}" onclick="toggleReward('${r.id}', ${!r.active})"></button>
+      <button class="delete-btn" onclick="deleteReward('${r.id}')">🗑</button>
+    </div>
+  `,
+          )
+          .join("");
+      }
+
+      window.toggleReward = async function (id, active) {
+        await updateDoc(doc(db, "rewards", id), { active });
+      };
+
+      window.deleteReward = function (id) {
+        openModal(
+          "Slett belønning?",
+          "Dette kan ikke angres.",
+          null,
+          async () => {
+            await deleteDoc(doc(db, "rewards", id));
+          },
+        );
+      };
+
+      window.saveNewReward = async function () {
+        const emoji =
+          document.getElementById("new-reward-emoji").value.trim() || "🎁";
+        const title = document.getElementById("new-reward-title").value.trim();
+        const stars =
+          parseInt(document.getElementById("new-reward-stars").value) || 10;
+        if (!title) {
+          alert("Skriv inn et navn på belønningen.");
+          return;
+        }
+        await addDoc(collection(db, "rewards"), {
+          emoji,
+          title,
+          stars,
+          active: true,
+        });
+        document.getElementById("new-reward-title").value = "";
+        document.getElementById("new-reward-emoji").value = "";
+        document.getElementById("add-reward-form").classList.remove("open");
+      };
+
+      // ─── Settings ─────────────────────────────────────────────────────────────────
+      function renderSettingsKids() {
+        const list = document.getElementById("settings-kids-list");
+        if (!list) return;
+        const kids = Object.values(allKids);
+        if (kids.length === 0) {
+          list.innerHTML = "";
+          return;
+        }
+        const order = ["trym", "emma", "hermine"];
+        kids.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+        list.innerHTML = kids
+          .map(
+            (k) => `
+    <div class="kid-adjust-row">
+      <span class="kid-adjust-name" style="color:${k.color}">${k.name}</span>
+      <button class="adjust-btn minus" onclick="adjustStars('${k.id}', -1)">−</button>
+      <span class="kid-adjust-stars" id="adj-stars-${k.id}">${k.stars ?? 0}⭐</span>
+      <button class="adjust-btn plus" onclick="adjustStars('${k.id}', 1)">+</button>
+    </div>
+  `,
+          )
+          .join("");
+      }
+
+      window.adjustStars = async function (kidId, delta) {
+        const kid = allKids[kidId];
+        if (!kid) return;
+        const newStars = Math.max(0, (kid.stars ?? 0) + delta);
+        await updateDoc(doc(db, "kids", kidId), { stars: newStars });
+      };
+
+      window.changePin = async function () {
+        const input = document.getElementById("new-pin-input").value.trim();
+        if (!/^\d{4}$/.test(input)) {
+          alert("PIN må være nøyaktig 4 siffer.");
+          return;
+        }
+        await setDoc(doc(db, "settings", "admin"), { pin: input });
+        adminPin = input;
+        document.getElementById("new-pin-input").value = "";
+        alert("PIN endret!");
+      };
+
+      window.confirmResetAll = function () {
+        openModal(
+          "Nullstill alle stjerner?",
+          "Dette vil sette alle barnas stjerner til 0. Dette kan ikke angres!",
+          null,
+          async () => {
+            const batch = writeBatch(db);
+            Object.values(allKids).forEach((k) => {
+              batch.update(doc(db, "kids", k.id), { stars: 0 });
+            });
+            await batch.commit();
+          },
+        );
+      };
+
+      // ─── Modal ────────────────────────────────────────────────────────────────────
+      function openModal(title, body, kidColor, onConfirm) {
+        document.getElementById("modal-title").textContent = title;
+        document.getElementById("modal-body").textContent = body;
+        const confirmBtn = document.getElementById("modal-confirm-btn");
+        confirmBtn.style.background = kidColor ?? "var(--blue)";
+        document.getElementById("modal-overlay").classList.add("open");
+        modalAction = onConfirm;
+      }
+
+      window.closeModal = function (e) {
+        if (e && e.target !== document.getElementById("modal-overlay")) return;
+        document.getElementById("modal-overlay").classList.remove("open");
+        modalAction = null;
+      };
+
+      window.modalConfirm = async function () {
+        document.getElementById("modal-overlay").classList.remove("open");
+        if (modalAction) {
+          try {
+            await modalAction();
+          } catch (err) {
+            console.error(err);
+          }
+          modalAction = null;
+        }
+      };
+
+      // ─── Star burst animation ─────────────────────────────────────────────────────
+      function starBurst() {
+        for (let i = 0; i < 5; i++) {
+          setTimeout(() => {
+            const el = document.createElement("div");
+            el.className = "star-burst";
+            el.textContent = "⭐";
+            el.style.left = 25 + Math.random() * 50 + "vw";
+            el.style.top = 20 + Math.random() * 40 + "vh";
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 900);
+          }, i * 120);
+        }
+      }
+
+      // ─── Service Worker ───────────────────────────────────────────────────────────
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("./sw.js").catch(() => {});
+      }
+
+      // ─── Start ────────────────────────────────────────────────────────────────────
+      // Restore session timer if still valid after page reload
+      if (isAdminUnlocked()) {
+        const remaining = parseInt(sessionStorage.getItem(ADMIN_SESSION_KEY)) - Date.now();
+        adminSessionTimer = setTimeout(lockAdminSession, remaining);
+        updateFab();
+      }
+
+      bootstrap().catch((err) => {
+        console.error("Bootstrap failed:", err);
+        document.getElementById("kid-cards-container").innerHTML =
+          `<div class="empty-state"><div class="empty-icon">⚠️</div>
+     Kunne ikke koble til Firebase.<br>Sjekk at FIREBASE_CONFIG er fylt ut.</div>`;
+      });
+    </script>
+  </body>
+</html>
