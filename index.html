@@ -2153,19 +2153,97 @@
           list.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div>Ingen ukesgrupper</div>';
           return;
         }
-        list.innerHTML = groups.map((g) => `
-    <div class="admin-list-item">
-      <span class="admin-list-item-emoji">${g.emoji ?? "📋"}</span>
-      <div class="admin-list-item-body">
-        <div class="admin-list-item-title">${g.title}</div>
-        <div class="admin-list-item-stars">${g.stars}⭐ · ${(g.subtasks || []).length} deloppgaver</div>
-        <div class="task-assign-tag">👤 ${assignedLabel(g)}</div>
+        list.innerHTML = groups.map((g) => {
+          const assignedIds = g.assignedTo || [];
+          const assignChips = Object.values(allKids).map(k => {
+            const sel = assignedIds.includes(k.id);
+            return `<button type="button" class="kid-assign-chip${sel ? ' selected' : ''}" data-kid-id="${k.id}"
+              style="border-color:${k.color}${sel ? '' : '66'};${sel ? `background:${k.color}33;color:#fff` : ''}"
+              onclick="toggleAssignChip(this,'${k.id}','${k.color}')">
+              <span class="chip-dot" style="background:${k.color}"></span>${k.name}
+            </button>`;
+          }).join('');
+          const subtaskRows = (g.subtasks || []).map(s => `
+            <div class="add-form-row mt-8 subtask-row" data-subtask-id="${s.id}">
+              <input class="form-input form-input-emoji" type="text" maxlength="2" placeholder="📝" value="${s.emoji ?? ''}">
+              <input class="form-input" type="text" placeholder="Deloppgave" value="${s.title}">
+              <button type="button" onclick="this.closest('.subtask-row').remove()" style="background:none;border:none;color:var(--red);font-size:1.2rem;cursor:pointer;padding:4px 8px">✕</button>
+            </div>`).join('');
+          return `
+    <div style="border-radius:var(--radius-sm);overflow:hidden;margin-bottom:8px;border:1.5px solid var(--border)">
+      <div class="admin-list-item" style="margin-bottom:0;border:none;border-radius:0">
+        <span class="admin-list-item-emoji">${g.emoji ?? "📋"}</span>
+        <div class="admin-list-item-body">
+          <div class="admin-list-item-title">${g.title}</div>
+          <div class="admin-list-item-stars">${g.stars}⭐ · ${(g.subtasks || []).length} deloppgaver · 👤 ${assignedLabel(g)}</div>
+        </div>
+        <button class="edit-btn" onclick="toggleEditPanel('edit-weekly-${g.id}')">✏️</button>
+        <button class="toggle-btn ${g.active ? "on" : "off"}" onclick="toggleWeeklyGroup('${g.id}', ${!g.active})"></button>
+        <button class="delete-btn" onclick="deleteWeeklyGroup('${g.id}')">🗑</button>
       </div>
-      <button class="toggle-btn ${g.active ? "on" : "off"}" onclick="toggleWeeklyGroup('${g.id}', ${!g.active})"></button>
-      <button class="delete-btn" onclick="deleteWeeklyGroup('${g.id}')">🗑</button>
-    </div>
-  `).join("");
+      <div class="edit-panel" id="edit-weekly-${g.id}">
+        <div class="add-form-row">
+          <div class="form-group" style="flex-shrink:0">
+            <div class="form-label">Emoji</div>
+            <input class="form-input form-input-emoji" id="ew-emoji-${g.id}" type="text" maxlength="2" value="${g.emoji ?? ''}">
+          </div>
+          <div class="form-group" style="flex:1">
+            <div class="form-label">Tittel</div>
+            <input class="form-input" id="ew-title-${g.id}" type="text" value="${g.title}">
+          </div>
+          <div class="form-group" style="flex-shrink:0">
+            <div class="form-label">⭐</div>
+            <input class="form-input form-input-stars" id="ew-stars-${g.id}" type="number" min="1" max="99" value="${g.stars}">
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="form-label">Hvem gjelder oppgaven?</div>
+          <div class="kid-assign-row" id="ew-assign-${g.id}">${assignChips}</div>
+        </div>
+        <div class="form-group">
+          <div class="form-label">Deloppgaver</div>
+          <div id="ew-subtasks-${g.id}">${subtaskRows}</div>
+          <button type="button" class="add-trigger-btn mt-8" onclick="addSubtaskRowTo('ew-subtasks-${g.id}')">+ Legg til deloppgave</button>
+        </div>
+        <div class="edit-actions">
+          <button class="edit-cancel-btn" onclick="toggleEditPanel('edit-weekly-${g.id}')">Avbryt</button>
+          <button class="edit-save-btn" onclick="saveWeeklyGroupEdit('${g.id}')">Lagre</button>
+        </div>
+      </div>
+    </div>`;
+        }).join("");
       }
+
+      window.addSubtaskRowTo = function (containerId) {
+        const container = document.getElementById(containerId);
+        const row = document.createElement('div');
+        row.className = 'add-form-row mt-8 subtask-row';
+        row.dataset.subtaskId = crypto.randomUUID();
+        row.innerHTML = `
+          <input class="form-input form-input-emoji" type="text" maxlength="2" placeholder="📝">
+          <input class="form-input" type="text" placeholder="Deloppgave">
+          <button type="button" onclick="this.closest('.subtask-row').remove()" style="background:none;border:none;color:var(--red);font-size:1.2rem;cursor:pointer;padding:4px 8px">✕</button>`;
+        container.appendChild(row);
+      };
+
+      window.saveWeeklyGroupEdit = async function (id) {
+        const emoji = document.getElementById(`ew-emoji-${id}`).value.trim() || '📋';
+        const title = document.getElementById(`ew-title-${id}`).value.trim();
+        const stars = parseInt(document.getElementById(`ew-stars-${id}`).value) || 1;
+        if (!title) { alert('Skriv inn tittel.'); return; }
+        const chips = document.querySelectorAll(`#ew-assign-${id} .kid-assign-chip.selected`);
+        const assignedTo = Array.from(chips).map(b => b.dataset.kidId);
+        const subtasks = [];
+        document.querySelectorAll(`#ew-subtasks-${id} .subtask-row`).forEach(row => {
+          const inputs = row.querySelectorAll('input');
+          const stEmoji = inputs[0].value.trim();
+          const stTitle = inputs[1].value.trim();
+          if (stTitle) subtasks.push({ id: row.dataset.subtaskId || crypto.randomUUID(), emoji: stEmoji, title: stTitle });
+        });
+        if (subtasks.length === 0) { alert('Legg til minst én deloppgave.'); return; }
+        await updateDoc(doc(db, 'weeklytasks', id), { emoji, title, stars, assignedTo, subtasks });
+        document.getElementById(`edit-weekly-${id}`).classList.remove('open');
+      };
 
       window.toggleWeeklyGroup = async function (id, active) {
         await updateDoc(doc(db, "weeklytasks", id), { active });
