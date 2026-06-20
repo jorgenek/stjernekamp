@@ -2588,7 +2588,7 @@
 
       // ─── Admin tabs ───────────────────────────────────────────────────────────────
       window.switchAdminTab = function (tab) {
-        const tabs = ["approve", "tasks", "rewards", "weekly", "settings"];
+        const tabs = ["approve", "tasks", "rewards", "settings", "weekly"];
         document.querySelectorAll(".admin-tabs .tab-btn").forEach((b, i) => {
           b.classList.toggle("active", tabs[i] === tab);
         });
