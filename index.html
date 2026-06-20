@@ -637,6 +637,54 @@
       .delete-btn:active {
         background: rgba(239, 68, 68, 0.15);
       }
+      .edit-btn {
+        background: none;
+        border: none;
+        color: var(--muted);
+        font-size: 1rem;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: var(--radius-sm);
+        transition: background var(--transition), color var(--transition);
+        flex-shrink: 0;
+      }
+      .edit-btn:active { background: var(--surface2); color: var(--text); }
+      .edit-panel {
+        display: none;
+        background: var(--surface2);
+        border-top: 1px solid var(--border);
+        padding: 12px 14px;
+        border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+      }
+      .edit-panel.open { display: block; }
+      .edit-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .edit-save-btn {
+        flex: 1;
+        background: var(--blue);
+        color: white;
+        border: none;
+        border-radius: var(--radius-sm);
+        padding: 10px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: opacity var(--transition);
+      }
+      .edit-save-btn:active { opacity: 0.8; }
+      .edit-cancel-btn {
+        background: var(--surface);
+        color: var(--muted);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 10px 16px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
 
       /* Add form */
       .add-form {
@@ -2572,20 +2620,53 @@
           return;
         }
         list.innerHTML = tasks
-          .map(
-            (t) => `
-    <div class="admin-list-item">
-      <span class="admin-list-item-emoji">${t.emoji ?? "📝"}</span>
-      <div class="admin-list-item-body">
-        <div class="admin-list-item-title">${t.title}</div>
-        <div class="admin-list-item-stars">${t.stars}⭐</div>
-        <div class="task-assign-tag">👤 ${assignedLabel(t)}</div>
+          .map((t) => {
+            const assignedIds = t.assignedTo || [];
+            const assignChips = Object.values(allKids).map(k => {
+              const sel = assignedIds.includes(k.id);
+              return `<button type="button" class="kid-assign-chip${sel ? ' selected' : ''}" data-kid-id="${k.id}"
+                style="border-color:${k.color}${sel ? '' : '66'};${sel ? `background:${k.color}33;color:#fff` : ''}"
+                onclick="toggleAssignChip(this,'${k.id}','${k.color}')">
+                <span class="chip-dot" style="background:${k.color}"></span>${k.name}
+              </button>`;
+            }).join('');
+            return `
+    <div style="border-radius:var(--radius-sm);overflow:hidden;margin-bottom:8px;border:1.5px solid var(--border)">
+      <div class="admin-list-item" style="margin-bottom:0;border:none;border-radius:0">
+        <span class="admin-list-item-emoji">${t.emoji ?? "📝"}</span>
+        <div class="admin-list-item-body">
+          <div class="admin-list-item-title">${t.title}</div>
+          <div class="admin-list-item-stars">${t.stars}⭐ · 👤 ${assignedLabel(t)}</div>
+        </div>
+        <button class="edit-btn" onclick="toggleEditPanel('edit-task-${t.id}')">✏️</button>
+        <button class="toggle-btn ${t.active ? "on" : "off"}" onclick="toggleTask('${t.id}', ${!t.active})"></button>
+        <button class="delete-btn" onclick="deleteTask('${t.id}')">🗑</button>
       </div>
-      <button class="toggle-btn ${t.active ? "on" : "off"}" onclick="toggleTask('${t.id}', ${!t.active})"></button>
-      <button class="delete-btn" onclick="deleteTask('${t.id}')">🗑</button>
-    </div>
-  `,
-          )
+      <div class="edit-panel" id="edit-task-${t.id}">
+        <div class="add-form-row">
+          <div class="form-group" style="flex-shrink:0">
+            <div class="form-label">Emoji</div>
+            <input class="form-input form-input-emoji" id="et-emoji-${t.id}" type="text" maxlength="2" value="${t.emoji ?? ''}">
+          </div>
+          <div class="form-group" style="flex:1">
+            <div class="form-label">Tittel</div>
+            <input class="form-input" id="et-title-${t.id}" type="text" value="${t.title}">
+          </div>
+          <div class="form-group" style="flex-shrink:0">
+            <div class="form-label">⭐</div>
+            <input class="form-input form-input-stars" id="et-stars-${t.id}" type="number" min="1" max="99" value="${t.stars}">
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="form-label">Hvem gjelder oppgaven?</div>
+          <div class="kid-assign-row" id="et-assign-${t.id}">${assignChips}</div>
+        </div>
+        <div class="edit-actions">
+          <button class="edit-cancel-btn" onclick="toggleEditPanel('edit-task-${t.id}')">Avbryt</button>
+          <button class="edit-save-btn" onclick="saveTaskEdit('${t.id}')">Lagre</button>
+        </div>
+      </div>
+    </div>`; })
           .join("");
       }
 
@@ -2602,6 +2683,31 @@
             await deleteDoc(doc(db, "tasks", id));
           },
         );
+      };
+
+      window.toggleEditPanel = function (panelId) {
+        const panel = document.getElementById(panelId);
+        if (panel) panel.classList.toggle('open');
+      };
+
+      window.saveTaskEdit = async function (id) {
+        const emoji = document.getElementById(`et-emoji-${id}`).value.trim() || '📝';
+        const title = document.getElementById(`et-title-${id}`).value.trim();
+        const stars = parseInt(document.getElementById(`et-stars-${id}`).value) || 1;
+        if (!title) { alert('Skriv inn et navn.'); return; }
+        const chips = document.querySelectorAll(`#et-assign-${id} .kid-assign-chip.selected`);
+        const assignedTo = Array.from(chips).map(b => b.dataset.kidId);
+        await updateDoc(doc(db, 'tasks', id), { emoji, title, stars, assignedTo });
+        document.getElementById(`edit-task-${id}`).classList.remove('open');
+      };
+
+      window.saveRewardEdit = async function (id) {
+        const emoji = document.getElementById(`er-emoji-${id}`).value.trim() || '🎁';
+        const title = document.getElementById(`er-title-${id}`).value.trim();
+        const stars = parseInt(document.getElementById(`er-stars-${id}`).value) || 1;
+        if (!title) { alert('Skriv inn et navn.'); return; }
+        await updateDoc(doc(db, 'rewards', id), { emoji, title, stars });
+        document.getElementById(`edit-reward-${id}`).classList.remove('open');
       };
 
       window.toggleAddForm = function (type) {
@@ -2672,19 +2778,39 @@
           return;
         }
         list.innerHTML = rewards
-          .map(
-            (r) => `
-    <div class="admin-list-item">
-      <span class="admin-list-item-emoji">${r.emoji ?? "🎁"}</span>
-      <div class="admin-list-item-body">
-        <div class="admin-list-item-title">${r.title}</div>
-        <div class="admin-list-item-stars">${r.stars}⭐</div>
+          .map((r) => `
+    <div style="border-radius:var(--radius-sm);overflow:hidden;margin-bottom:8px;border:1.5px solid var(--border)">
+      <div class="admin-list-item" style="margin-bottom:0;border:none;border-radius:0">
+        <span class="admin-list-item-emoji">${r.emoji ?? "🎁"}</span>
+        <div class="admin-list-item-body">
+          <div class="admin-list-item-title">${r.title}</div>
+          <div class="admin-list-item-stars">${r.stars}⭐</div>
+        </div>
+        <button class="edit-btn" onclick="toggleEditPanel('edit-reward-${r.id}')">✏️</button>
+        <button class="toggle-btn ${r.active ? "on" : "off"}" onclick="toggleReward('${r.id}', ${!r.active})"></button>
+        <button class="delete-btn" onclick="deleteReward('${r.id}')">🗑</button>
       </div>
-      <button class="toggle-btn ${r.active ? "on" : "off"}" onclick="toggleReward('${r.id}', ${!r.active})"></button>
-      <button class="delete-btn" onclick="deleteReward('${r.id}')">🗑</button>
-    </div>
-  `,
-          )
+      <div class="edit-panel" id="edit-reward-${r.id}">
+        <div class="add-form-row">
+          <div class="form-group" style="flex-shrink:0">
+            <div class="form-label">Emoji</div>
+            <input class="form-input form-input-emoji" id="er-emoji-${r.id}" type="text" maxlength="2" value="${r.emoji ?? ''}">
+          </div>
+          <div class="form-group" style="flex:1">
+            <div class="form-label">Tittel</div>
+            <input class="form-input" id="er-title-${r.id}" type="text" value="${r.title}">
+          </div>
+          <div class="form-group" style="flex-shrink:0">
+            <div class="form-label">⭐</div>
+            <input class="form-input form-input-stars" id="er-stars-${r.id}" type="number" min="1" max="999" value="${r.stars}">
+          </div>
+        </div>
+        <div class="edit-actions">
+          <button class="edit-cancel-btn" onclick="toggleEditPanel('edit-reward-${r.id}')">Avbryt</button>
+          <button class="edit-save-btn" onclick="saveRewardEdit('${r.id}')">Lagre</button>
+        </div>
+      </div>
+    </div>`)
           .join("");
       }
 
