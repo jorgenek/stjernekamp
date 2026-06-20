@@ -1097,6 +1097,85 @@
         color: var(--muted);
         font-size: 0.95rem;
       }
+
+      /* Weekly task groups */
+      .weekly-group {
+        background: var(--surface);
+        border: 1.5px solid var(--border);
+        border-radius: var(--radius-sm);
+        margin-bottom: 12px;
+        overflow: hidden;
+      }
+      .weekly-group.locked {
+        opacity: 0.75;
+      }
+      .weekly-group-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+      }
+      .weekly-group-emoji {
+        font-size: 1.5rem;
+        flex-shrink: 0;
+      }
+      .weekly-group-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .weekly-group-title {
+        font-weight: 600;
+        font-size: 0.95rem;
+      }
+      .weekly-group-sub {
+        font-size: 0.78rem;
+        color: var(--muted);
+        margin-top: 1px;
+      }
+      .weekly-subtasks {
+        border-top: 1px solid var(--border);
+      }
+      .weekly-subtask {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border);
+        cursor: pointer;
+        transition: background 0.15s;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .weekly-subtask:last-child {
+        border-bottom: none;
+      }
+      .weekly-subtask:active {
+        background: var(--surface2);
+      }
+      .weekly-subtask.done {
+        opacity: 0.6;
+      }
+      .subtask-check {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        border: 2px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--green);
+        flex-shrink: 0;
+        transition: border-color 0.15s, background 0.15s;
+      }
+      .weekly-subtask.done .subtask-check {
+        background: var(--green);
+        border-color: var(--green);
+        color: #000;
+      }
+      .subtask-title {
+        font-size: 0.9rem;
+      }
     </style>
   </head>
   <body>
@@ -1148,6 +1227,7 @@
         </div>
         <div class="tab-panels">
           <div class="tab-panel active" id="kid-tab-tasks">
+            <div id="kid-weekly-list"></div>
             <div id="kid-tasks-list">
               <div class="loading-state"><div class="spinner"></div></div>
             </div>
@@ -1256,6 +1336,9 @@
           <button class="tab-btn" onclick="switchAdminTab('settings')">
             Innstillinger
           </button>
+          <button class="tab-btn" onclick="switchAdminTab('weekly')">
+            Ukesoppgaver
+          </button>
         </div>
         <div class="tab-panels">
           <!-- Approve tab -->
@@ -1361,6 +1444,42 @@
               <button class="save-btn" onclick="saveNewReward()">
                 Lagre belønning
               </button>
+            </div>
+          </div>
+
+          <!-- Weekly tasks tab -->
+          <div class="tab-panel" id="admin-tab-weekly">
+            <div id="admin-weekly-list">
+              <div class="loading-state"><div class="spinner"></div></div>
+            </div>
+            <button class="add-trigger-btn" onclick="toggleAddWeeklyForm()">+ Legg til ukesgruppe</button>
+            <div class="add-form" id="add-weekly-form">
+              <div class="flex-row">
+                <div class="form-group" style="flex-shrink: 0">
+                  <div class="form-label">Emoji</div>
+                  <input class="form-input form-input-emoji" id="new-weekly-emoji" type="text" maxlength="2" placeholder="📋" />
+                </div>
+                <div class="form-group" style="flex: 1">
+                  <div class="form-label">Tittel</div>
+                  <input class="form-input" id="new-weekly-title" type="text" placeholder="Ukesoppgavenavn" />
+                </div>
+                <div class="form-group" style="flex-shrink: 0">
+                  <div class="form-label">⭐</div>
+                  <input class="form-input form-input-stars" id="new-weekly-stars" type="number" min="1" max="99" value="5" />
+                </div>
+              </div>
+              <div class="form-group">
+                <div class="form-label">Deloppgaver</div>
+                <div id="new-weekly-subtasks"></div>
+                <button type="button" class="add-trigger-btn mt-8" onclick="addSubtaskRow()">+ Legg til deloppgave</button>
+              </div>
+              <div class="form-group">
+                <div class="form-label">Hvem gjelder oppgaven?</div>
+                <div class="kid-assign-row" id="new-weekly-assign-row">
+                  <!-- filled by JS -->
+                </div>
+              </div>
+              <button class="save-btn" onclick="saveNewWeeklyGroup()">Lagre ukesgruppe</button>
             </div>
           </div>
 
@@ -1486,6 +1605,12 @@
       let kidPendingTaskIds = new Set(); // taskIds with pending requests for current kid
       let unsubFullHist = null;
       let historyFilter = "all";
+
+      // Weekly task groups state
+      let allWeeklyTasks = {};     // id -> data
+      let weeklyProgressData = {}; // progressDocId -> data
+      let unsubWeeklyTasks = null;
+      let unsubWeeklyProgress = null;
 
       // ─── Seed data ───────────────────────────────────────────────────────────────
       const SEED_KIDS = [
@@ -1786,9 +1911,10 @@
           renderKidRewards();
         }
 
-        // Subscribe kid history and pending
+        // Subscribe kid history, pending, and weekly progress
         subscribeKidHistory();
         subscribeKidPending();
+        subscribeKidWeeklyProgress();
       }
 
       function subscribeKidPending() {
@@ -1818,7 +1944,12 @@
           unsubKidPending();
           unsubKidPending = null;
         }
+        if (unsubWeeklyProgress) {
+          unsubWeeklyProgress();
+          unsubWeeklyProgress = null;
+        }
         kidPendingTaskIds = new Set();
+        weeklyProgressData = {};
       }
 
       function subscribeTasksRewards() {
@@ -1840,7 +1971,222 @@
           renderKidRewards();
           renderAdminRewards();
         });
+        if (unsubWeeklyTasks) unsubWeeklyTasks();
+        unsubWeeklyTasks = onSnapshot(collection(db, "weeklytasks"), (snap) => {
+          allWeeklyTasks = {};
+          snap.forEach((d) => { allWeeklyTasks[d.id] = { id: d.id, ...d.data() }; });
+          renderKidWeeklyGroups();
+          renderAdminWeeklyTasks();
+        });
       }
+
+      // ─── ISO week key helpers ─────────────────────────────────────────────────────
+      function isoWeekKey(date = new Date()) {
+        const d = new Date(date);
+        d.setHours(0, 0, 0, 0);
+        d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
+        const w1 = new Date(d.getFullYear(), 0, 4);
+        const wn = 1 + Math.round(((d - w1) / 86400000 - 3 + (w1.getDay() + 6) % 7) / 7);
+        return `${d.getFullYear()}-W${String(wn).padStart(2, "0")}`;
+      }
+
+      function progressDocId(kidId, groupId) {
+        return `${kidId}_${groupId}_${isoWeekKey()}`;
+      }
+
+      // ─── Kid weekly progress subscription ────────────────────────────────────────
+      function subscribeKidWeeklyProgress() {
+        if (unsubWeeklyProgress) unsubWeeklyProgress();
+        const weekKey = isoWeekKey();
+        const q = query(
+          collection(db, "weeklyProgress"),
+          where("kidId", "==", currentKidId),
+          where("weekKey", "==", weekKey),
+        );
+        unsubWeeklyProgress = onSnapshot(q, (snap) => {
+          weeklyProgressData = {};
+          snap.forEach((d) => { weeklyProgressData[d.id] = { id: d.id, ...d.data() }; });
+          renderKidWeeklyGroups();
+        });
+      }
+
+      // ─── Render weekly groups in kid view ────────────────────────────────────────
+      function renderKidWeeklyGroups() {
+        if (!currentKidId) return;
+        const list = document.getElementById("kid-weekly-list");
+        if (!list) return;
+        const groups = Object.values(allWeeklyTasks).filter((g) => {
+          if (!g.active) return false;
+          return !g.assignedTo?.length || g.assignedTo.includes(currentKidId);
+        });
+        if (groups.length === 0) { list.innerHTML = ""; return; }
+        list.innerHTML = groups.map((g) => {
+          const docId = progressDocId(currentKidId, g.id);
+          const prog = weeklyProgressData[docId] || { done: [], pendingId: null, awarded: false };
+          const done = prog.done || [];
+          const subtasks = g.subtasks || [];
+          const isLocked = prog.awarded || !!prog.pendingId;
+          return `
+      <div class="weekly-group${isLocked ? " locked" : ""}">
+        <div class="weekly-group-header">
+          <span class="weekly-group-emoji">${g.emoji ?? "📋"}</span>
+          <div class="weekly-group-info">
+            <div class="weekly-group-title">${g.title}</div>
+            <div class="weekly-group-sub">${prog.awarded ? "✅ Fullført denne uken" : prog.pendingId ? "⏳ Venter på godkjenning" : `${done.length} av ${subtasks.length} fullført`}</div>
+          </div>
+          <span class="star-badge">+${g.stars}⭐</span>
+        </div>
+        <div class="weekly-subtasks">
+          ${subtasks.map((s) => {
+            const isDone = done.includes(s.id);
+            return `<div class="weekly-subtask${isDone ? " done" : ""}"
+              ${isLocked ? "" : `onclick="toggleSubtask('${g.id}','${s.id}')"`}>
+              <span class="subtask-check">${isDone ? "✓" : ""}</span>
+              <span class="subtask-title">${s.emoji ? s.emoji + " " : ""}${s.title}</span>
+            </div>`;
+          }).join("")}
+        </div>
+      </div>`;
+        }).join("");
+      }
+
+      // ─── Toggle subtask ───────────────────────────────────────────────────────────
+      window.toggleSubtask = async function (groupId, subtaskId) {
+        const kid = allKids[currentKidId];
+        const group = allWeeklyTasks[groupId];
+        if (!kid || !group) return;
+
+        const docId = progressDocId(currentKidId, groupId);
+        const prog = weeklyProgressData[docId];
+        const existingDone = prog?.done || [];
+
+        let newDone;
+        if (existingDone.includes(subtaskId)) {
+          newDone = existingDone.filter((id) => id !== subtaskId);
+        } else {
+          newDone = [...existingDone, subtaskId];
+        }
+
+        const allSubtasksDone = (group.subtasks || []).every((s) => newDone.includes(s.id));
+
+        const ref = doc(db, "weeklyProgress", docId);
+        await setDoc(ref, {
+          kidId: currentKidId,
+          groupId,
+          weekKey: isoWeekKey(),
+          done: newDone,
+          pendingId: prog?.pendingId ?? null,
+          awarded: false,
+        }, { merge: true });
+
+        // Auto-send to pending if all done
+        if (allSubtasksDone && !prog?.pendingId && !prog?.awarded) {
+          const pendingRef = await addDoc(collection(db, "pending"), {
+            kidId: currentKidId,
+            kidName: kid.name,
+            kidColor: kid.color,
+            type: "earn",
+            weeklyGroupId: groupId,
+            title: group.title,
+            emoji: group.emoji ?? "📋",
+            stars: group.stars,
+            timestamp: serverTimestamp(),
+          });
+          await updateDoc(ref, { pendingId: pendingRef.id });
+        }
+      };
+
+      // ─── Admin weekly task management ─────────────────────────────────────────────
+      function renderAdminWeeklyTasks() {
+        const list = document.getElementById("admin-weekly-list");
+        if (!list) return;
+        const groups = Object.values(allWeeklyTasks);
+        if (groups.length === 0) {
+          list.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div>Ingen ukesgrupper</div>';
+          return;
+        }
+        list.innerHTML = groups.map((g) => `
+    <div class="admin-list-item">
+      <span class="admin-list-item-emoji">${g.emoji ?? "📋"}</span>
+      <div class="admin-list-item-body">
+        <div class="admin-list-item-title">${g.title}</div>
+        <div class="admin-list-item-stars">${g.stars}⭐ · ${(g.subtasks || []).length} deloppgaver</div>
+        <div class="task-assign-tag">👤 ${assignedLabel(g)}</div>
+      </div>
+      <button class="toggle-btn ${g.active ? "on" : "off"}" onclick="toggleWeeklyGroup('${g.id}', ${!g.active})"></button>
+      <button class="delete-btn" onclick="deleteWeeklyGroup('${g.id}')">🗑</button>
+    </div>
+  `).join("");
+      }
+
+      window.toggleWeeklyGroup = async function (id, active) {
+        await updateDoc(doc(db, "weeklytasks", id), { active });
+      };
+
+      window.deleteWeeklyGroup = function (id) {
+        openModal(
+          "Slett ukesgruppe?",
+          "Dette kan ikke angres.",
+          null,
+          async () => { await deleteDoc(doc(db, "weeklytasks", id)); },
+        );
+      };
+
+      window.toggleAddWeeklyForm = function () {
+        const form = document.getElementById("add-weekly-form");
+        const opening = !form.classList.contains("open");
+        form.classList.toggle("open");
+        if (opening) buildWeeklyAssignChips();
+      };
+
+      function buildWeeklyAssignChips() {
+        const row = document.getElementById("new-weekly-assign-row");
+        if (!row) return;
+        const kids = Object.values(allKids);
+        row.innerHTML = kids.map((k) => `
+          <button type="button" class="kid-assign-chip" data-kid-id="${k.id}"
+            style="border-color:${k.color}66"
+            onclick="toggleAssignChip(this,'${k.id}','${k.color}')">
+            <span class="chip-dot" style="background:${k.color}"></span>${k.name}
+          </button>`).join("");
+      }
+
+      window.addSubtaskRow = function () {
+        const container = document.getElementById("new-weekly-subtasks");
+        const row = document.createElement("div");
+        row.className = "add-form-row mt-8 subtask-row";
+        row.innerHTML = `
+          <input class="form-input form-input-emoji" type="text" maxlength="2" placeholder="📝">
+          <input class="form-input" type="text" placeholder="Deloppgave">
+          <button type="button" onclick="this.closest('.subtask-row').remove()" style="background:none;border:none;color:var(--red);font-size:1.2rem;cursor:pointer;padding:4px 8px">✕</button>`;
+        container.appendChild(row);
+      };
+
+      window.saveNewWeeklyGroup = async function () {
+        const emoji = document.getElementById("new-weekly-emoji").value.trim() || "📋";
+        const title = document.getElementById("new-weekly-title").value.trim();
+        const stars = parseInt(document.getElementById("new-weekly-stars").value) || 5;
+        if (!title) { alert("Skriv inn tittel"); return; }
+
+        const subtaskRows = document.querySelectorAll("#new-weekly-subtasks .subtask-row");
+        const subtasks = [];
+        subtaskRows.forEach((row) => {
+          const inputs = row.querySelectorAll("input");
+          const stEmoji = inputs[0].value.trim();
+          const stTitle = inputs[1].value.trim();
+          if (stTitle) subtasks.push({ id: crypto.randomUUID(), emoji: stEmoji, title: stTitle });
+        });
+        if (subtasks.length === 0) { alert("Legg til minst én deloppgave"); return; }
+
+        const chips = document.querySelectorAll("#new-weekly-assign-row .kid-assign-chip.selected");
+        const assignedTo = Array.from(chips).map((b) => b.dataset.kidId);
+
+        await addDoc(collection(db, "weeklytasks"), { emoji, title, stars, active: true, assignedTo, subtasks });
+        document.getElementById("new-weekly-title").value = "";
+        document.getElementById("new-weekly-emoji").value = "";
+        document.getElementById("new-weekly-subtasks").innerHTML = "";
+        document.getElementById("add-weekly-form").classList.remove("open");
+      };
 
       function subscribeKidHistory() {
         if (unsubKidHist) unsubKidHist();
@@ -2173,18 +2519,28 @@
           stars: p.stars,
           timestamp: serverTimestamp(),
         });
+        if (p.weeklyGroupId) {
+          const wDocId = progressDocId(p.kidId, p.weeklyGroupId);
+          batch.update(doc(db, "weeklyProgress", wDocId), { awarded: true, pendingId: null });
+        }
+
         await batch.commit();
 
         if (p.type === "earn") starBurst();
       };
 
       window.rejectPending = async function (pendingId) {
+        const p = pendingRequests[pendingId];
         await deleteDoc(doc(db, "pending", pendingId));
+        if (p?.weeklyGroupId) {
+          const wDocId = progressDocId(p.kidId, p.weeklyGroupId);
+          await updateDoc(doc(db, "weeklyProgress", wDocId), { pendingId: null });
+        }
       };
 
       // ─── Admin tabs ───────────────────────────────────────────────────────────────
       window.switchAdminTab = function (tab) {
-        const tabs = ["approve", "tasks", "rewards", "settings"];
+        const tabs = ["approve", "tasks", "rewards", "weekly", "settings"];
         document.querySelectorAll(".admin-tabs .tab-btn").forEach((b, i) => {
           b.classList.toggle("active", tabs[i] === tab);
         });
@@ -2196,6 +2552,7 @@
         if (tab === "tasks" && Object.keys(allTasks).length === 0)
           subscribeTasksRewards();
         if (tab === "settings") renderSettingsKids();
+        if (tab === "weekly") renderAdminWeeklyTasks();
       };
 
       // ─── Admin task management ────────────────────────────────────────────────────
